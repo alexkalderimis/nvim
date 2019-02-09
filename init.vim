@@ -14,12 +14,6 @@ set softtabstop=2
 set background=dark
 set laststatus=0
 
-" Allow project specific .nvimrc files
-" see: https://andrew.stwrt.ca/posts/project-specific-vimrc/
-set exrc
-" Prevent shelling out in project specific Configuration files.
-set secure 
-
 " hi Keyword ctermfg=darkcyan
 " hi Constant ctermfg=5*
 " hi Comment ctermfg=2*
@@ -41,6 +35,12 @@ Plug 'junegunn/seoul256.vim'
 Plug 'neomake/neomake'
 
 call plug#end()
+
+" Allow project specific .nvimrc files
+" see: https://andrew.stwrt.ca/posts/project-specific-vimrc/
+set exrc
+" Prevent shelling out in project specific Configuration files.
+set secure 
 
 imap <C-k>     <Plug>(neosnippet_expand_or_jump)
 smap <C-k>     <Plug>(neosnippet_expand_or_jump)
@@ -174,35 +174,53 @@ function! VisualSelection()
   endtry
 endfunction
 
-function! ReplSend(...)
+function! ReplSend(...) range
   let code = VisualSelection()
   let expr = ""
   if a:0 == 1
+    " Need some instruction on how to get this working...
+    " " 'v' gets the start of the selection (or cursor pos if no selection)
+    " let [l:l1, l:c1] = getpos('v')[1:2]
+    " " " '.' gets the cursor pos (or the end of the selection if selection)
+    " let [l:l2, l:c2] = getpos('.')[1:2]
+
+    " let hs_type = intero#repl#type_at(0, l:l1, l:c1, l:l2, l:c2)
+    " let expr .= "let " . a:1 . " :: " . hs_type
+    " let expr .= "\n"
     let expr .= "let " . a:1 . " = "
   endif
   let expr .= code
 
-  execute 'InteroSend' ":{"
-  for frag in split(expr, "\n")
-    call intero#repl#send(frag)
-  endfor
-  execute 'InteroSend' ":}"
+  call ReplSendExpr(expr)
 endfunction
 
-function! ReplSendLine(...)
+function! ReplSendLine(...) range
   let code = join(getline(a:firstline,a:lastline), "\n")
   let expr = ""
   if a:0 == 1
-    let expr .= "let " . a:1 . " = "
+    let expr .= "let "
+    if a:1 != "let"
+      let expr .= a:1 . " = "
+    endif
   endif
   let expr .= code
 
+  call ReplSendExpr(expr)
+endfunction
+
+function! ReplSendExpr(expr)
   execute 'InteroSend' ":{"
-  for frag in split(expr, "\n")
+  let l:i = 0
+  for frag in split(a:expr, "\n")
+    if l:i > 0
+      let frag = "    " . frag
+    endif
     call intero#repl#send(frag)
+    let l:i += 1
   endfor
   execute 'InteroSend' ":}"
 endfunction
 
 command -range -nargs=? SendRepl call ReplSend(<f-args>)
 command -range -nargs=? SendReplLine <line1>,<line2>call ReplSendLine(<f-args>)
+command -range -nargs=0 SendReplCAF <line1>,<line2>call ReplSendLine("let")
