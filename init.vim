@@ -30,9 +30,46 @@ let g:deoplete#enable_at_startup = 1
 Plug 'Shougo/neosnippet.vim'
 let g:neosnippet#snippets_directory = 'snips,snippets'
 Plug 'Shougo/neosnippet-snippets'
-Plug 'junegunn/seoul256.vim'
 
 Plug 'neomake/neomake'
+
+Plug 'twinside/vim-hoogle'
+Plug 'eagletmt/ghcmod-vim'
+Plug 'alx741/vim-stylishask'
+
+Plug 'Shougo/vimproc.vim', {'do' : 'make'}
+
+" General LSP client with support for multiple backends
+" Plug 'w0rp/ale'
+
+" Literate Haskell support
+Plug 'wting/lhaskell.vim'
+
+" Clojure REPL support
+Plug 'clojure-emacs/cider-nrepl'
+Plug 'tpope/vim-salve'
+Plug 'tpope/vim-fireplace'
+
+" Git support
+Plug 'tpope/vim-fugitive'
+Plug 'shumphrey/fugitive-gitlab.vim' " Adds GBrows support for gitlab
+Plug 'syngan/vim-gitlab' " Adds support for issues/MRs/comments
+Plug 'sirjofri/vim-glissues' " Support for GL issues
+
+" Pandoc support
+Plug 'vim-pandoc/vim-pandoc'
+Plug 'vim-pandoc/vim-pandoc-syntax'
+
+" Colour-schemes
+Plug 'vim-scripts/summerfruit256.vim' " Light, colourful
+Plug 'jnurmine/zenburn'
+Plug 'sickill/vim-monokai'
+Plug 'junegunn/seoul256.vim' 
+Plug 'rakr/vim-one' " Light and dark, muted
+
+" UI
+Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
 
 call plug#end()
 
@@ -42,18 +79,25 @@ set exrc
 " Prevent shelling out in project specific Configuration files.
 set secure 
 
-imap <C-k>     <Plug>(neosnippet_expand_or_jump)
-smap <C-k>     <Plug>(neosnippet_expand_or_jump)
-xmap <C-k>     <Plug>(neosnippet_expand_target)
+imap <C-8>     <Plug>(neosnippet_expand_or_jump)
+smap <C-8>     <Plug>(neosnippet_expand_or_jump)
+xmap <C-8>     <Plug>(neosnippet_expand_target)
 
 " Pathogen - deprecated
 execute pathogen#infect()
 
-set background=dark
-colorscheme solarized8
+" set background=dark
+" colorscheme solarized8
+
+set background=light
+colorscheme summerfruit256
+
+" Snippet options
+au FileType neosnippet setl noexpandtab
 
 " au BufNewFile,BufReadPost *.md setl syntax=markdown
 au FileType markdown setl ts=4 sw=4 cc=100 tw=80
+au FileType pandoc setl ts=4 sw=4 cc=100 tw=80
 
 "" NERDTree configure
 
@@ -146,6 +190,8 @@ au FileType haskell nnoremap <silent> <leader>ph :Hindent<CR>
 let g:stylishask_on_save = 0
 au FileType haskell nnoremap <silent> <leader>ps :Stylishask<CR>
 
+au FileType haskell nnoremap <silent> <leader>hl :GhcModLint<CR>
+
 if (has("nvim"))
   "For Neovim 0.1.3 and 0.1.4 < https://github.com/neovim/neovim/pull/2198 >
   let $NVIM_TUI_ENABLE_TRUE_COLOR=1
@@ -224,3 +270,25 @@ endfunction
 command -range -nargs=? SendRepl call ReplSend(<f-args>)
 command -range -nargs=? SendReplLine <line1>,<line2>call ReplSendLine(<f-args>)
 command -range -nargs=0 SendReplCAF <line1>,<line2>call ReplSendLine("let")
+
+" ALE Configuration
+let g:ale_linters ={
+      \   'haskell': ['hlint', 'hdevtools', 'hfmt'],
+      \}
+
+command ShowHint call ale#cursor#ShowCursorDetail()
+
+au FileType pandoc execute ':PandocHighlight haskell'
+
+let g:gitlab_api_keys = {'gitlab.com': $GITLAB_FUGITIVE_TOKEN}
+
+" let g:gitlab_config['gitlab'] ={
+"      \    'url' : 'https://gitlab.com/',
+"      \    'user' : 'alexkalderimis',
+"      \    'email' : 'akalderimis@gitlab.com'
+"      \}
+
+" Airline
+
+let g:airline#extensions#tabline#enabled = 1
+let g:airline_theme='base16_spacemacs'
