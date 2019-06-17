@@ -14,3 +14,8 @@ Applicatives
 filesystem
 gitlab
 kubernetes
+Language
+repos
+versioned
+revertable
+cloneable
