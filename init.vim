@@ -20,6 +20,18 @@ set laststatus=0
 " hi Normal ctermbg=none
 " hi LineNr ctermfg=darkgrey
 
+if (has("nvim"))
+  "For Neovim 0.1.3 and 0.1.4 < https://github.com/neovim/neovim/pull/2198 >
+  let $NVIM_TUI_ENABLE_TRUE_COLOR=1
+endif
+
+"For Neovim > 0.1.5 and Vim > patch 7.4.1799 < https://github.com/vim/vim/commit/61be73bb0f965a895bfb064ea3e55476ac175162 >
+"Based on Vim patch 7.4.1770 (`guicolors` option) < https://github.com/vim/vim/commit/8a633e3427b47286869aa4b96f2bfc1fe65b25cd >
+" < https://github.com/neovim/neovim/wiki/Following-HEAD#20160511 >
+if (has("termguicolors"))
+  set termguicolors
+endif
+
 " vim-plug plugins
 call plug#begin('~/.vim/plugged')
 
@@ -66,10 +78,20 @@ Plug 'jnurmine/zenburn'
 Plug 'sickill/vim-monokai'
 Plug 'junegunn/seoul256.vim' 
 Plug 'rakr/vim-one' " Light and dark, muted
+Plug 'flazz/vim-colorschemes' " one pack of lots of schemes
+Plug 'nlknguyen/papercolor-theme'
+Plug 'iCyMind/NeoSolarized'
 
 " UI
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
+Plug 'scrooloose/nerdtree'
+Plug 'scrooloose/nerdcommenter'
+Plug 'junegunn/fzf'
+
+" Integrations
+Plug 'raghur/vim-ghost', {'do': ':GhostInstall'}
+Plug 'thoughtbot/vim-rspec'
 
 call plug#end()
 
@@ -79,18 +101,12 @@ set exrc
 " Prevent shelling out in project specific Configuration files.
 set secure 
 
+" Sets bash environment when using the shell
+let $BASH_ENV = "$HOME/.config/bash/noninteractiverc"
+
 imap <C-8>     <Plug>(neosnippet_expand_or_jump)
 smap <C-8>     <Plug>(neosnippet_expand_or_jump)
 xmap <C-8>     <Plug>(neosnippet_expand_target)
-
-" Pathogen - deprecated
-execute pathogen#infect()
-
-" set background=dark
-" colorscheme solarized8
-
-set background=light
-colorscheme summerfruit256
 
 " Snippet options
 au FileType neosnippet setl noexpandtab
@@ -105,8 +121,11 @@ au FileType pandoc setl ts=4 sw=4 cc=100 tw=80
 autocmd StdinReadPre * let s:std_in=1
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 
-"Toggle NERDTree with Ctrl-N
-map <C-n> :NERDTreeToggle<CR>
+" NERDTree bindings
+" mnemonic: nerd
+map <C-n> :NERDTreeToggle<CR><C-w>p
+" mnemonic: here
+map <C-h> :NERDTreeFind<CR>
 
 "Show hidden files in NERDTree
 let NERDTreeShowHidden=1
@@ -125,11 +144,21 @@ let g:haskell_indent_guard = 2
 let g:haskell_indent_case_alternative = 1
 let g:cabal_indent_section = 2
 
-"Ctrl-{hjkl} for navigating out of terminal panes
-tnoremap <C-h> <C-\><C-n><C-w>h
-tnoremap <C-j> <C-\><C-n><C-w>j
-tnoremap <C-k> <C-\><C-n><C-w>k
-tnoremap <C-l> <C-\><C-n><C-w>l
+" To use `ALT+{h,j,k,l}` to navigate windows from any mode:
+tnoremap <A-h> <C-\><C-N><C-w>h
+tnoremap <A-j> <C-\><C-N><C-w>j
+tnoremap <A-k> <C-\><C-N><C-w>k
+tnoremap <A-l> <C-\><C-N><C-w>l
+inoremap <A-h> <C-\><C-N><C-w>h
+inoremap <A-j> <C-\><C-N><C-w>j
+inoremap <A-k> <C-\><C-N><C-w>k
+inoremap <A-l> <C-\><C-N><C-w>l
+nnoremap <A-h> <C-w>h
+nnoremap <A-j> <C-w>j
+nnoremap <A-k> <C-w>k
+nnoremap <A-l> <C-w>l
+"ESC leaves terminal mode
+tnoremap <Esc> <C-\><C-n>
 
 "Intero Configuration
 " Automatically reload on save
@@ -192,17 +221,33 @@ au FileType haskell nnoremap <silent> <leader>ps :Stylishask<CR>
 
 au FileType haskell nnoremap <silent> <leader>hl :GhcModLint<CR>
 
-if (has("nvim"))
-  "For Neovim 0.1.3 and 0.1.4 < https://github.com/neovim/neovim/pull/2198 >
-  let $NVIM_TUI_ENABLE_TRUE_COLOR=1
-endif
+" Terminal settings
+au TermOpen * setlocal nonumber norelativenumber
 
-"For Neovim > 0.1.5 and Vim > patch 7.4.1799 < https://github.com/vim/vim/commit/61be73bb0f965a895bfb064ea3e55476ac175162 >
-"Based on Vim patch 7.4.1770 (`guicolors` option) < https://github.com/vim/vim/commit/8a633e3427b47286869aa4b96f2bfc1fe65b25cd >
-" < https://github.com/neovim/neovim/wiki/Following-HEAD#20160511 >
-if (has("termguicolors"))
-  set termguicolors
-endif
+" Custom IRB console at the bottom of the screen
+" Same keybindings as Intero, nn/nh
+command OpenIRB execute "split term://irb | wincmd J | resize 10"
+
+command OpenRailsC execute "split term://rails c | wincmd J | resize 10"
+
+function! CloseIRB()
+  let l:bufid = bufwinnr('term')
+  exec 'silent! ' . l:bufid . 'wincmd c'
+endfunction
+
+command HideIRB call CloseIRB()
+
+au FileType ruby nnoremap <silent> <leader>nn :OpenIRB<CR>
+au FileType ruby nnoremap <silent> <leader>nr :OpenRailsC<CR>
+au FileType ruby nnoremap <silent> <leader>nh :HideIRB<CR>
+" RSpec.vim mappings
+au FileType ruby map <Leader>t :call RunCurrentSpecFile()<CR>
+au FileType ruby map <Leader>s :call RunNearestSpec()<CR>
+au FileType ruby map <Leader>l :call RunLastSpec()<CR>
+au FileType ruby map <Leader>a :call RunAllSpecs()<CR>
+
+let g:rspec_window_reldir = 'right'
+let g:rspec_command = "!tmux send-keys -t right 'glspec {spec}' Enter"
 
 " UltiSnips - default values:
 "let g:UltiSnipsExpandTrigger               <tab>
@@ -288,7 +333,61 @@ let g:gitlab_api_keys = {'gitlab.com': $GITLAB_FUGITIVE_TOKEN}
 "      \    'email' : 'akalderimis@gitlab.com'
 "      \}
 
+" PaperColor
+
+let g:PaperColor_Theme_Options = {
+  \   'theme': {
+  \     'default': {
+  \       'override': {
+  \         'linenumber_bg' : ['#888888', '232'],
+  \         'cursorlinenr_bg' : ['#f59842', ''],
+  \         'cursorlinenr_fg' : ['#fae1ca', '']
+  \       }
+  \     }
+  \   }
+  \ }
+
 " Airline
 
 let g:airline#extensions#tabline#enabled = 1
-let g:airline_theme='base16_spacemacs'
+" let g:airline_theme='base16_spacemacs'
+let g:airline_theme='papercolor'
+
+if !exists('g:airline_symbols')
+  let g:airline_symbols = {}
+endif
+let g:airline_left_sep = ''
+let g:airline_left_alt_sep = ''
+let g:airline_right_sep = ''
+let g:airline_right_alt_sep = ''
+let g:airline_symbols.branch = ''
+let g:airline_symbols.readonly = ''
+let g:airline_symbols.linenr = '☰'
+let g:airline_symbols.maxlinenr = ''
+let g:airline_symbols.dirty='⚡'
+
+" CTRLP
+set wildignore+=*/tmp/*,*.so,*.swp,*.zip
+let g:ctrlp_custom_ignore = '\v[\/]\.(git|hg|svn)$'
+let g:ctrlp_working_path_mode='ra'
+let g:ctrlp_cmd = 'CtrlPMixed'
+
+" Use fuzzy-find
+nnoremap <C-p> :FZF<CR>
+
+" Color schemes:
+"
+" DARK THEMES
+set background=dark
+" colorscheme solarized8
+" colorscheme monokai
+" colorscheme molokai
+colorscheme dracula
+
+" LIGHT THEMES
+" set background=light
+" colorscheme one
+" colorscheme NeoSolarized
+" colorscheme PaperColor
+" colorscheme summerfruit256
+
