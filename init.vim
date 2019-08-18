@@ -35,6 +35,8 @@ endif
 " vim-plug plugins
 call plug#begin('~/.vim/plugged')
 
+Plug 'kassio/neoterm'
+
 Plug 'parsonsmatt/intero-neovim'
 
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
@@ -52,7 +54,7 @@ Plug 'alx741/vim-stylishask'
 Plug 'Shougo/vimproc.vim', {'do' : 'make'}
 
 " General LSP client with support for multiple backends
-" Plug 'w0rp/ale'
+Plug 'w0rp/ale'
 
 " Literate Haskell support
 Plug 'wting/lhaskell.vim'
@@ -72,6 +74,13 @@ Plug 'sirjofri/vim-glissues' " Support for GL issues
 Plug 'vim-pandoc/vim-pandoc'
 Plug 'vim-pandoc/vim-pandoc-syntax'
 
+" Syntastic
+Plug 'scrooloose/syntastic'
+
+" Vue.js support
+Plug 'posva/vim-vue'
+Plug 'sekel/vim-vue-syntastic'
+
 " Colour-schemes
 Plug 'vim-scripts/summerfruit256.vim' " Light, colourful
 Plug 'jnurmine/zenburn'
@@ -81,6 +90,7 @@ Plug 'rakr/vim-one' " Light and dark, muted
 Plug 'flazz/vim-colorschemes' " one pack of lots of schemes
 Plug 'nlknguyen/papercolor-theme'
 Plug 'iCyMind/NeoSolarized'
+Plug 'lifepillar/vim-solarized8'
 
 " UI
 Plug 'vim-airline/vim-airline'
@@ -119,7 +129,7 @@ au FileType pandoc setl ts=4 sw=4 cc=100 tw=80
 
 "Open NERDTree when nvim starts
 autocmd StdinReadPre * let s:std_in=1
-autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+" autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 
 " NERDTree bindings
 " mnemonic: nerd
@@ -226,28 +236,22 @@ au TermOpen * setlocal nonumber norelativenumber
 
 " Custom IRB console at the bottom of the screen
 " Same keybindings as Intero, nn/nh
-command OpenIRB execute "split term://irb | wincmd J | resize 10"
-
-command OpenRailsC execute "split term://rails c | wincmd J | resize 10"
-
-function! CloseIRB()
-  let l:bufid = bufwinnr('term')
-  exec 'silent! ' . l:bufid . 'wincmd c'
-endfunction
-
-command HideIRB call CloseIRB()
+command OpenIRB execute ":botright T irb"
+command OpenRailsC execute ":botright T railsc"
+command MigrateTest execute ":T rails db:migrate RAILS_ENV=test"
 
 au FileType ruby nnoremap <silent> <leader>nn :OpenIRB<CR>
 au FileType ruby nnoremap <silent> <leader>nr :OpenRailsC<CR>
-au FileType ruby nnoremap <silent> <leader>nh :HideIRB<CR>
+au FileType ruby nnoremap <silent> <leader>nh :Tclose<CR>
 " RSpec.vim mappings
 au FileType ruby map <Leader>t :call RunCurrentSpecFile()<CR>
 au FileType ruby map <Leader>s :call RunNearestSpec()<CR>
 au FileType ruby map <Leader>l :call RunLastSpec()<CR>
 au FileType ruby map <Leader>a :call RunAllSpecs()<CR>
 
-let g:rspec_window_reldir = 'right'
-let g:rspec_command = "!tmux send-keys -t right 'glspec {spec}' Enter"
+" Send command to next pane
+" let g:rspec_command = "!tmux send-keys -t \":$(tmux display-message -p '\\\#I').+\" 'glspec {spec}' Enter"
+let g:rspec_command = "T glspec {spec}"
 
 " UltiSnips - default values:
 "let g:UltiSnipsExpandTrigger               <tab>
@@ -317,13 +321,46 @@ command -range -nargs=? SendReplLine <line1>,<line2>call ReplSendLine(<f-args>)
 command -range -nargs=0 SendReplCAF <line1>,<line2>call ReplSendLine("let")
 
 " ALE Configuration
+let g:ale_linters_explicit = 1
+let g:ale_fix_on_save = 1
 let g:ale_linters ={
       \   'haskell': ['hlint', 'hdevtools', 'hfmt'],
+      \}
+let g:ale_fixers = {
+      \   'javascript': ['prettier'],
+      \   'css': ['prettier'],
+      \   'vue': ['prettier'],
+      \   'go': ['gofmt'],
       \}
 
 command ShowHint call ale#cursor#ShowCursorDetail()
 
+" relative path  (src/foo.txt)
+nnoremap <leader>cf :let @+=expand("%")<CR>
+
+" absolute path  (/something/src/foo.txt)
+nnoremap <leader>cF :let @+=expand("%:p")<CR>
+
+" filename       (foo.txt)
+nnoremap <leader>ct :let @+=expand("%:t")<CR>
+
+" directory name (/something/src)
+nnoremap <leader>ch :let @+=expand("%:p:h")<CR>
+
 au FileType pandoc execute ':PandocHighlight haskell'
+
+" Vue.js support
+autocmd FileType vue syntax sync fromstart
+let g:syntastic_javascript_checkers = ['eslint']
+let g:syntastic_vue_checkers = ['eslint']
+let local_eslint = finddir('node_modules', '.;') . '/.bin/eslint'
+if matchstr(local_eslint, "^\/\\w") == ''
+    let local_eslint = getcwd() . "/" . local_eslint
+endif
+if executable(local_eslint)
+    let g:syntastic_javascript_eslint_exec = local_eslint
+    let g:syntastic_vue_eslint_exec = local_eslint
+endif
 
 let g:gitlab_api_keys = {'gitlab.com': $GITLAB_FUGITIVE_TOKEN}
 
@@ -375,14 +412,25 @@ let g:ctrlp_cmd = 'CtrlPMixed'
 " Use fuzzy-find
 nnoremap <C-p> :FZF<CR>
 
+" Neoterm:
+let g:neoterm_default_mod = ':vertical :botright'
+
 " Color schemes:
 "
 " DARK THEMES
+
 set background=dark
-" colorscheme solarized8
+if $TERM_VARIANT == 'dark'
+  set background=dark
+endif
+if $TERM_VARIANT == 'light'
+  set background=light
+endif
+
+colorscheme solarized8
 " colorscheme monokai
 " colorscheme molokai
-colorscheme dracula
+" colorscheme dracula
 
 " LIGHT THEMES
 " set background=light
