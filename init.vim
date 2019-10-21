@@ -42,8 +42,9 @@ Plug 'parsonsmatt/intero-neovim'
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 let g:deoplete#enable_at_startup = 1
 Plug 'Shougo/neosnippet.vim'
-let g:neosnippet#snippets_directory = 'snips,snippets'
+let g:neosnippet#snippets_directory = 'snips,snippets,neosnippets'
 Plug 'Shougo/neosnippet-snippets'
+Plug 'honza/vim-snippets'
 
 Plug 'neomake/neomake'
 
@@ -112,7 +113,7 @@ set exrc
 set secure 
 
 " Sets bash environment when using the shell
-let $BASH_ENV = "$HOME/.config/bash/noninteractiverc"
+let $BASH_ENV = "$HOME/.config/bash/bash-in-vim.rc"
 
 imap <C-8>     <Plug>(neosnippet_expand_or_jump)
 smap <C-8>     <Plug>(neosnippet_expand_or_jump)
@@ -417,17 +418,19 @@ let g:neoterm_default_mod = ':vertical :botright'
 
 " Color schemes:
 "
-" DARK THEMES
 
 set background=dark
 if $TERM_VARIANT == 'dark'
   set background=dark
+  colorscheme solarized8
 endif
 if $TERM_VARIANT == 'light'
   set background=light
+  colorscheme one
 endif
 
-colorscheme solarized8
+" DARK THEMES
+" colorscheme solarized8
 " colorscheme monokai
 " colorscheme molokai
 " colorscheme dracula
